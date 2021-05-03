@@ -39,18 +39,13 @@ export default function JitsiConferenceEventManager(conference) {
             if (!track.isLocal() || !conference.statistics) {
                 return;
             }
-            const session
-                = track.isP2P
-                    ? conference.p2pJingleSession : conference.jvbJingleSession;
+            const session = track.isP2P ? conference.p2pJingleSession : conference.jvbJingleSession;
 
             // TPC will be null, before the conference starts, but the event
             // still should be queued
             const tpc = (session && session.peerconnection) || null;
 
-            conference.statistics.sendMuteEvent(
-                tpc,
-                track.isMuted(),
-                track.getType());
+            conference.statistics.sendMuteEvent(tpc, track.isMuted(), track.getType());
         });
 }
 
@@ -61,8 +56,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     const conference = this.conference;
     const chatRoom = conference.room;
 
-    this.chatRoomForwarder = new EventEmitterForwarder(chatRoom,
-        this.conference.eventEmitter);
+    this.chatRoomForwarder = new EventEmitterForwarder(chatRoom, this.conference.eventEmitter);
 
     chatRoom.addListener(XMPPEvents.ICE_RESTARTING, jingleSession => {
         if (!jingleSession.isP2P) {
@@ -87,8 +81,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     });
 
     chatRoom.addListener(
-        XMPPEvents.ICE_RESTART_SUCCESS,
-        (jingleSession, offerIq) => {
+        XMPPEvents.ICE_RESTART_SUCCESS, (jingleSession, offerIq) => {
             // The JVB data chanel needs to be reopened in case the conference
             // has been moved to a new bridge.
             !jingleSession.isP2P

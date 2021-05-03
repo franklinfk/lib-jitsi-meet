@@ -89,12 +89,9 @@ function getLowerResolution(resolution) {
  */
 function getAnalyticsAttributesFromOptions(options) {
     const attributes = {
-        'audio_requested':
-            options.devices.includes('audio'),
-        'video_requested':
-            options.devices.includes('video'),
-        'screen_sharing_requested':
-            options.devices.includes('desktop')
+        'audio_requested': options.devices.includes('audio'),
+        'video_requested': options.devices.includes('video'),
+        'screen_sharing_requested': options.devices.includes('desktop')
     };
 
     if (attributes.video_requested) {
@@ -343,12 +340,14 @@ export default _mergeNamespaceAndModule({
             JitsiMediaDevices.emitEvent(
                 JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN,
                 browser.getName());
+
         } else if (fireSlowPromiseEvent) {
             window.setTimeout(() => {
                 if (!promiseFulfilled) {
                     JitsiMediaDevices.emitEvent(JitsiMediaDevicesEvents.SLOW_GET_USER_MEDIA);
                 }
             }, USER_MEDIA_SLOW_PROMISE_TIMEOUT);
+            
         }
 
         if (!window.connectionTimes) {
@@ -361,13 +360,9 @@ export default _mergeNamespaceAndModule({
             .then(tracks => {
                 promiseFulfilled = true;
 
-                window.connectionTimes['obtainPermissions.end']
-                    = window.performance.now();
+                window.connectionTimes['obtainPermissions.end'] = window.performance.now();
 
-                Statistics.sendAnalytics(
-                    createGetUserMediaEvent(
-                        'success',
-                        getAnalyticsAttributesFromOptions(restOptions)));
+                Statistics.sendAnalytics(createGetUserMediaEvent( 'success', getAnalyticsAttributesFromOptions(restOptions)));
 
                 if (!RTC.options.disableAudioLevels) {
                     for (let i = 0; i < tracks.length; i++) {
@@ -375,27 +370,20 @@ export default _mergeNamespaceAndModule({
                         const mStream = track.getOriginalStream();
 
                         if (track.getType() === MediaType.AUDIO) {
-                            Statistics.startLocalStats(mStream,
-                                track.setAudioLevel.bind(track));
-                            track.addEventListener(
-                                JitsiTrackEvents.LOCAL_TRACK_STOPPED,
-                                () => {
-                                    Statistics.stopLocalStats(mStream);
-                                });
+                            Statistics.startLocalStats(mStream, track.setAudioLevel.bind(track));
+                            track.addEventListener(JitsiTrackEvents.LOCAL_TRACK_STOPPED, () => {Statistics.stopLocalStats(mStream);});
                         }
                     }
                 }
 
                 // set real device ids
-                const currentlyAvailableMediaDevices
-                    = RTC.getCurrentlyAvailableMediaDevices();
+                const currentlyAvailableMediaDevices = RTC.getCurrentlyAvailableMediaDevices();
 
                 if (currentlyAvailableMediaDevices) {
                     for (let i = 0; i < tracks.length; i++) {
                         const track = tracks[i];
 
-                        track._setRealDeviceIdFromDeviceList(
-                            currentlyAvailableMediaDevices);
+                        track._setRealDeviceIdFromDeviceList(currentlyAvailableMediaDevices);
                     }
                 }
 
@@ -478,27 +466,24 @@ export default _mergeNamespaceAndModule({
 
                     Statistics.sendLog(JSON.stringify(logObject));
 
-                    const attributes
-                        = getAnalyticsAttributesFromOptions(options);
+                    const attributes = getAnalyticsAttributesFromOptions(options);
 
                     attributes.reason = 'device not found';
                     attributes.devices = error.gum.devices.join('.');
-                    Statistics.sendAnalytics(
-                        createGetUserMediaEvent('error', attributes));
+                    Statistics.sendAnalytics(createGetUserMediaEvent('error', attributes));
+
                 } else {
                     // Report gUM failed to the stats
                     Statistics.sendGetUserMediaFailed(error);
 
-                    const attributes
-                        = getAnalyticsAttributesFromOptions(options);
+                    const attributes = getAnalyticsAttributesFromOptions(options);
 
                     attributes.reason = error.name;
-                    Statistics.sendAnalytics(
-                        createGetUserMediaEvent('error', attributes));
+                    Statistics.sendAnalytics(createGetUserMediaEvent('error', attributes));
+                    
                 }
 
-                window.connectionTimes['obtainPermissions.end']
-                    = window.performance.now();
+                window.connectionTimes['obtainPermissions.end'] = window.performance.now();
 
                 return Promise.reject(error);
             });

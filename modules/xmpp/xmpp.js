@@ -42,29 +42,19 @@ const FAILURE_REGEX = /<failure.*><not-allowed\/><text>(.*)<\/text><\/failure>/g
  * @param {Object} [options.xmppPing] - See {@link XmppConnection} constructor.
  * @returns {XmppConnection}
  */
-function createConnection({
-    enableWebsocketResume,
-    serviceUrl = '/http-bind',
-    shard,
-    token,
-    websocketKeepAlive,
-    websocketKeepAliveUrl,
-    xmppPing }) {
+function createXmppConnection({enableWebsocketResume, serviceUrl = '/http-bind', shard, token, websocketKeepAlive, websocketKeepAliveUrl, xmppPing }) {
+    logger.info(`creatingXmppConnection token[${token}]`);
 
     // Append token as URL param
     if (token) {
         // eslint-disable-next-line no-param-reassign
         serviceUrl += `${serviceUrl.indexOf('?') === -1 ? '?' : '&'}token=${token}`;
     }
+    logger.info(`calling XmppConnection.contructor[${serviceUrl}], websocketKeepAlive[${websocketKeepAlive}], websocketKeepAliveUrl[${websocketKeepAliveUrl}]`);
 
-    return new XmppConnection({
-        enableWebsocketResume,
-        serviceUrl,
-        websocketKeepAlive,
-        websocketKeepAliveUrl,
-        xmppPing,
-        shard
-    });
+    let xmppConnection = new XmppConnection({enableWebsocketResume, serviceUrl, websocketKeepAlive, websocketKeepAliveUrl, xmppPing, shard});
+
+    return xmppConnection;
 }
 
 /**
@@ -143,7 +133,7 @@ export default class XMPP extends Listenable {
         // let's ping the main domain (in case a guest one is used for the connection)
         xmppPing.domain = options.hosts.domain;
 
-        this.connection = createConnection({
+        this.connection = createXmppConnection({
             enableWebsocketResume: options.enableWebsocketResume,
 
             // FIXME remove deprecated bosh option at some point
@@ -272,9 +262,7 @@ export default class XMPP extends Listenable {
         const statusStr = Strophe.getStatusString(status).toLowerCase();
 
         this.connectionTimes[statusStr] = now;
-        logger.log(
-            `(TIME) Strophe ${statusStr}${msg ? `[${msg}]` : ''}:\t`,
-            now);
+        logger.log(`(TIME) Strophe ${statusStr}${msg ? `[${msg}]` : ''}:\t`, now);
 
         this.eventEmitter.emit(XMPPEvents.CONNECTION_STATUS_CHANGED, credentials, status, msg);
         if (status === Strophe.Status.CONNECTED || status === Strophe.Status.ATTACHED) {
@@ -303,8 +291,7 @@ export default class XMPP extends Listenable {
                 .catch(error => {
                     const errmsg = 'Feature discovery error';
 
-                    GlobalOnErrorHandler.callErrorHandler(
-                        new Error(`${errmsg}: ${error}`));
+                    GlobalOnErrorHandler.callErrorHandler(new Error(`${errmsg}: ${error}`));
                     logger.error(errmsg, error);
                 });
 
@@ -314,28 +301,30 @@ export default class XMPP extends Listenable {
             if (credentials.password) {
                 this.authenticatedUser = true;
             }
+
             if (this.connection && this.connection.connected
                 && Strophe.getResourceFromJid(this.connection.jid)) {
                 // .connected is true while connecting?
                 // this.connection.send($pres());
-                this.eventEmitter.emit(
-                    JitsiConnectionEvents.CONNECTION_ESTABLISHED,
-                    Strophe.getResourceFromJid(this.connection.jid));
+                this.eventEmitter.emit(JitsiConnectionEvents.CONNECTION_ESTABLISHED, Strophe.getResourceFromJid(this.connection.jid));
             }
+
         } else if (status === Strophe.Status.CONNFAIL) {
             if (msg === 'x-strophe-bad-non-anon-jid') {
                 this.anonymousConnectionFailed = true;
             } else {
                 this.connectionFailed = true;
             }
+
             this.lastErrorMsg = msg;
+
             if (msg === 'giving-up') {
-                this.eventEmitter.emit(
-                    JitsiConnectionEvents.CONNECTION_FAILED,
-                    JitsiConnectionErrors.OTHER_ERROR, msg);
+                this.eventEmitter.emit(JitsiConnectionEvents.CONNECTION_FAILED, JitsiConnectionErrors.OTHER_ERROR, msg);
             }
+
         } else if (status === Strophe.Status.ERROR) {
             this.lastErrorMsg = msg;
+
         } else if (status === Strophe.Status.DISCONNECTED) {
             // Stop ping interval
             this.connection.ping.stopInterval();
@@ -344,19 +333,16 @@ export default class XMPP extends Listenable {
 
             if (this.anonymousConnectionFailed) {
                 // prompt user for username and password
-                this.eventEmitter.emit(
-                    JitsiConnectionEvents.CONNECTION_FAILED,
-                    JitsiConnectionErrors.PASSWORD_REQUIRED);
+                this.eventEmitter.emit(JitsiConnectionEvents.CONNECTION_FAILED, JitsiConnectionErrors.PASSWORD_REQUIRED);
+
             } else if (this.connectionFailed) {
-                this.eventEmitter.emit(
-                    JitsiConnectionEvents.CONNECTION_FAILED,
-                    JitsiConnectionErrors.OTHER_ERROR,
-                    errMsg,
+                this.eventEmitter.emit(JitsiConnectionEvents.CONNECTION_FAILED, JitsiConnectionErrors.OTHER_ERROR, errMsg,
                     undefined, /* credentials */
                     this._getConnectionFailedReasonDetails());
+
             } else if (wasIntentionalDisconnect) {
-                this.eventEmitter.emit(
-                    JitsiConnectionEvents.CONNECTION_DISCONNECTED, errMsg);
+                this.eventEmitter.emit(JitsiConnectionEvents.CONNECTION_DISCONNECTED, errMsg);
+                
             } else {
                 // XXX if Strophe drops the connection while not being asked to,
                 // it means that most likely some serious error has occurred.
@@ -463,6 +449,7 @@ export default class XMPP extends Listenable {
      * @param password
      */
     _connect(jid, password) {
+        logger.info(`jid[${jid}]`);
         // connection.connect() starts the connection process.
         //
         // As the connection process proceeds, the user supplied callback will
@@ -498,8 +485,10 @@ export default class XMPP extends Listenable {
         if (this.connection._stropheConn && this.connection._stropheConn._addSysHandler) {
             this._sysMessageHandler = this._onSystemMessage.bind(this);
             this.connection._stropheConn._addSysHandler(this._sysMessageHandler, null, 'message');
+
         } else {
             logger.warn('Cannot attach strophe system handler, jiconop cannot operate');
+
         }
 
         this.connection.connect(
@@ -779,11 +768,9 @@ export default class XMPP extends Listenable {
         }
 
         if (this.options.p2p && this.options.p2p.iceTransportPolicy) {
-            logger.info('P2P ICE transport policy: ',
-                this.options.p2p.iceTransportPolicy);
+            logger.info('P2P ICE transport policy: ', this.options.p2p.iceTransportPolicy);
 
-            iceConfig.p2p.iceTransportPolicy
-                = this.options.p2p.iceTransportPolicy;
+            iceConfig.p2p.iceTransportPolicy = this.options.p2p.iceTransportPolicy;
         }
 
         this.connection.addConnectionPlugin('emuc', new MucConnectionPlugin(this));
@@ -801,13 +788,10 @@ export default class XMPP extends Listenable {
         const details = {};
 
         // check for moving between shard if information is available
-        if (this.options.deploymentInfo
-            && this.options.deploymentInfo.shard
-            && this.connection.lastResponseHeaders) {
+        if (this.options.deploymentInfo && this.options.deploymentInfo.shard && this.connection.lastResponseHeaders) {
 
             // split headers by line
-            const headersArr = this.connection.lastResponseHeaders
-                .trim().split(/[\r\n]+/);
+            const headersArr = this.connection.lastResponseHeaders.trim().split(/[\r\n]+/);
             const headers = {};
 
             headersArr.forEach(line => {
@@ -819,9 +803,7 @@ export default class XMPP extends Listenable {
             });
 
             /* eslint-disable camelcase */
-            details.shard_changed
-                = this.options.deploymentInfo.shard
-                    !== headers['x-jitsi-shard'];
+            details.shard_changed = this.options.deploymentInfo.shard !== headers['x-jitsi-shard'];
             /* eslint-enable camelcase */
         }
 

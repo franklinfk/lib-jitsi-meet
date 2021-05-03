@@ -1126,12 +1126,9 @@ class RTCUtils extends Listenable {
      * handling.
      */
     newObtainAudioAndVideoPermissions(options) {
-        logger.info('Using the new gUM flow');
+        logger.info('newObtainAudioAndVideoPermissions(). Using the new gUM flow');
 
-        const {
-            timeout,
-            ...otherOptions
-        } = options;
+        const {timeout, ...otherOptions} = options;
 
         const mediaStreamsMetaData = [];
 
@@ -1147,8 +1144,7 @@ class RTCUtils extends Listenable {
          */
         const maybeRequestDesktopDevice = function() {
             const umDevices = otherOptions.devices || [];
-            const isDesktopDeviceRequested
-                = umDevices.indexOf('desktop') !== -1;
+            const isDesktopDeviceRequested = umDevices.indexOf('desktop') !== -1;
 
             if (!isDesktopDeviceRequested) {
                 return Promise.resolve();

@@ -117,9 +117,7 @@ const JINGLE_SI_TIMEOUT = 5000;
  */
 export default function JitsiConference(options) {
     if (!options.name || options.name.toLowerCase() !== options.name) {
-        const errmsg
-            = 'Invalid conference name (no conference name passed or it '
-                + 'contains invalid characters like capital letters)!';
+        const errmsg = 'Invalid conference name (no conference name passed or it contains invalid characters like capital letters)!';
 
         logger.error(errmsg);
         throw new Error(errmsg);
@@ -170,15 +168,13 @@ export default function JitsiConference(options) {
      * sending bitrate) and calculates a number which represents the connection
      * quality.
      */
-    this.connectionQuality
-        = new ConnectionQuality(this, this.eventEmitter, options);
+    this.connectionQuality = new ConnectionQuality(this, this.eventEmitter, options);
 
     /**
      * Reports average RTP statistics to the analytics module.
      * @type {AvgRTPStatsReporter}
      */
-    this.avgRtpStatsReporter
-        = new AvgRTPStatsReporter(this, options.config.avgRtpStatsN || 15);
+    this.avgRtpStatsReporter = new AvgRTPStatsReporter(this, options.config.avgRtpStatsN || 15);
 
     /**
      * Detects issues with the audio of remote participants.
@@ -206,8 +202,7 @@ export default function JitsiConference(options) {
      */
     this.deferredStartP2PTask = null;
 
-    const delay
-        = parseInt(options.config.p2p && options.config.p2p.backToP2PDelay, 10);
+    const delay = parseInt(options.config.p2p && options.config.p2p.backToP2PDelay, 10);
 
     /**
      * A delay given in seconds, before the conference switches back to P2P
@@ -322,15 +317,10 @@ JitsiConference.prototype._init = function(options = {}) {
     // 'preferH264' and 'disableH264' settings have been deprecated for a while,
     // 'preferredCodec' and 'disabledCodec' will have precedence over them.
     const codecSettings = {
-        disabledCodec: config.videoQuality
-            ? config.videoQuality.disabledCodec
-            : config.p2p && config.p2p.disableH264 && CodecMimeType.H264,
+        disabledCodec: config.videoQuality ? config.videoQuality.disabledCodec : config.p2p && config.p2p.disableH264 && CodecMimeType.H264,
         enforcePreferredCodec: config.videoQuality && config.videoQuality.enforcePreferredCodec,
-        jvbCodec: (config.videoQuality && config.videoQuality.preferredCodec)
-            || (config.preferH264 && CodecMimeType.H264),
-        p2pCodec: config.p2p
-            ? config.p2p.preferredCodec || (config.p2p.preferH264 && CodecMimeType.H264)
-            : CodecMimeType.VP8
+        jvbCodec: (config.videoQuality && config.videoQuality.preferredCodec) || (config.preferH264 && CodecMimeType.H264),
+        p2pCodec: config.p2p ? config.p2p.preferredCodec || (config.p2p.preferH264 && CodecMimeType.H264) : CodecMimeType.VP8
     };
 
     this.codecSelection = new CodecSelection(this, codecSettings);
@@ -344,23 +334,17 @@ JitsiConference.prototype._init = function(options = {}) {
     );
 
     // Connection interrupted/restored listeners
-    this._onIceConnectionInterrupted
-        = this._onIceConnectionInterrupted.bind(this);
-    this.room.addListener(
-        XMPPEvents.CONNECTION_INTERRUPTED, this._onIceConnectionInterrupted);
+    this._onIceConnectionInterrupted = this._onIceConnectionInterrupted.bind(this);
+    this.room.addListener(XMPPEvents.CONNECTION_INTERRUPTED, this._onIceConnectionInterrupted);
 
     this._onIceConnectionRestored = this._onIceConnectionRestored.bind(this);
-    this.room.addListener(
-        XMPPEvents.CONNECTION_RESTORED, this._onIceConnectionRestored);
+    this.room.addListener(XMPPEvents.CONNECTION_RESTORED, this._onIceConnectionRestored);
 
-    this._onIceConnectionEstablished
-        = this._onIceConnectionEstablished.bind(this);
-    this.room.addListener(
-        XMPPEvents.CONNECTION_ESTABLISHED, this._onIceConnectionEstablished);
+    this._onIceConnectionEstablished= this._onIceConnectionEstablished.bind(this);
+    this.room.addListener(XMPPEvents.CONNECTION_ESTABLISHED, this._onIceConnectionEstablished);
 
     this._updateProperties = this._updateProperties.bind(this);
-    this.room.addListener(XMPPEvents.CONFERENCE_PROPERTIES_CHANGED,
-        this._updateProperties);
+    this.room.addListener(XMPPEvents.CONFERENCE_PROPERTIES_CHANGED, this._updateProperties);
 
     this._sendConferenceJoinAnalyticsEvent = this._sendConferenceJoinAnalyticsEvent.bind(this);
     this.room.addListener(XMPPEvents.MEETING_ID_SET, this._sendConferenceJoinAnalyticsEvent);
@@ -385,18 +369,18 @@ JitsiConference.prototype._init = function(options = {}) {
     this.receiveVideoController = new ReceiveVideoController(this, this.rtc);
     this.sendVideoController = new SendVideoController(this, this.rtc);
 
-    this.participantConnectionStatus
-        = new ParticipantConnectionStatusHandler(
-            this.rtc,
-            this,
-            {
-                // Both these options are not public API, leaving it here only
-                // as an entry point through config for tuning up purposes.
-                // Default values should be adjusted as soon as optimal values
-                // are discovered.
-                rtcMuteTimeout: config._peerConnStatusRtcMuteTimeout,
-                outOfLastNTimeout: config._peerConnStatusOutOfLastNTimeout
-            });
+    this.participantConnectionStatus = new ParticipantConnectionStatusHandler(
+        this.rtc,
+        this,
+        {
+            // Both these options are not public API, leaving it here only
+            // as an entry point through config for tuning up purposes.
+            // Default values should be adjusted as soon as optimal values
+            // are discovered.
+            rtcMuteTimeout: config._peerConnStatusRtcMuteTimeout,
+            outOfLastNTimeout: config._peerConnStatusOutOfLastNTimeout
+        }
+    );
     this.participantConnectionStatus.init();
 
     // Add the ability to enable callStats only on a percentage of users based on config.js settings.
@@ -491,7 +475,6 @@ JitsiConference.prototype._init = function(options = {}) {
         });
     }
 
-
     if ('channelLastN' in config) {
         this.setLastN(config.channelLastN);
     }
@@ -506,8 +489,7 @@ JitsiConference.prototype._init = function(options = {}) {
     this.p2pDominantSpeakerDetection = new P2PDominantSpeakerDetection(this);
 
     if (config && config.deploymentInfo && config.deploymentInfo.userRegion) {
-        this.setLocalParticipantProperty(
-            'region', config.deploymentInfo.userRegion);
+        this.setLocalParticipantProperty('region', config.deploymentInfo.userRegion);
     }
 
     // Publish the codec type to presence.
@@ -1581,26 +1563,24 @@ JitsiConference.prototype.muteParticipant = function(id, mediaType) {
  * @param fullJid the member full jid, if any
  * @param features the member botType, if any
  */
-JitsiConference.prototype.onMemberJoined = function(
-        jid, nick, role, isHidden, statsID, status, identity, botType, fullJid, features) {
+JitsiConference.prototype.onMemberJoined = function(jid, nick, role, isHidden, statsID, status, identity, botType, fullJid, features) {
+    logger.info(`onMemberJoined. jid[${jid}], nick[${nick}], statsId[${statsId}], status[${status}]`);
+
+
     const id = Strophe.getResourceFromJid(jid);
 
     if (id === 'focus' || this.myUserId() === id) {
         return;
     }
 
-    const participant
-        = new JitsiParticipant(jid, this, nick, isHidden, statsID, status, identity);
+    const participant = new JitsiParticipant(jid, this, nick, isHidden, statsID, status, identity);
 
     participant.setRole(role);
     participant.setBotType(botType);
     participant.setFeatures(features);
 
     this.participants[id] = participant;
-    this.eventEmitter.emit(
-        JitsiConferenceEvents.USER_JOINED,
-        id,
-        participant);
+    this.eventEmitter.emit(JitsiConferenceEvents.USER_JOINED, id, participant);
 
     this._updateFeatures(participant);
 

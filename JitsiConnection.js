@@ -1,3 +1,4 @@
+import { getLogger } from 'jitsi-meet-logger';
 import JitsiConference from './JitsiConference';
 import * as JitsiConnectionEvents from './JitsiConnectionEvents';
 import Statistics from './modules/statistics/statistics';
@@ -6,6 +7,10 @@ import {
     CONNECTION_DISCONNECTED as ANALYTICS_CONNECTION_DISCONNECTED,
     createConnectionFailedEvent
 } from './service/statistics/AnalyticsEvents';
+
+import * as JitsiConferenceEvents from './JitsiConferenceEvents';
+
+const logger = getLogger(__filename);
 
 /**
  * Creates a new connection object for the Jitsi Meet server side video
@@ -18,6 +23,8 @@ import {
  * @constructor
  */
 export default function JitsiConnection(appID, token, options) {
+    logger.info(`JitsiConnection. appID[${appID}, token[${token}]`);
+
     this.appID = appID;
     this.token = token;
     this.options = options;
@@ -26,9 +33,9 @@ export default function JitsiConnection(appID, token, options) {
     /* eslint-disable max-params */
     this.addEventListener(JitsiConnectionEvents.CONNECTION_FAILED,
         (errType, msg, credentials, details) => {
-            Statistics.sendAnalyticsAndLog(
-                createConnectionFailedEvent(errType, msg, details));
-        });
+            Statistics.sendAnalyticsAndLog(createConnectionFailedEvent(errType, msg, details));
+        }
+    );
     /* eslint-enable max-params */
 
     this.addEventListener(JitsiConnectionEvents.CONNECTION_DISCONNECTED,
@@ -39,17 +46,11 @@ export default function JitsiConnection(appID, token, options) {
             // XXX Do we need the difference in handling between the log and
             // analytics event here?
             if (msg) {
-                Statistics.sendAnalytics(
-                    ANALYTICS_CONNECTION_DISCONNECTED,
-                    { message: msg });
+                Statistics.sendAnalytics(ANALYTICS_CONNECTION_DISCONNECTED, { message: msg });
             }
-            Statistics.sendLog(
-                JSON.stringify(
-                    {
-                        id: ANALYTICS_CONNECTION_DISCONNECTED,
-                        msg
-                    }));
-        });
+            Statistics.sendLog(JSON.stringify({id: ANALYTICS_CONNECTION_DISCONNECTED, msg}));
+        }
+    );
 }
 
 /**
@@ -110,11 +111,26 @@ JitsiConnection.prototype.setToken = function(token) {
  * @returns {JitsiConference} returns the new conference object.
  */
 JitsiConnection.prototype.initJitsiConference = function(name, options) {
-    return new JitsiConference({
-        name,
-        config: options,
-        connection: this
-    });
+    let jitsiConference = new JitsiConference({name, config: options, connection: this});
+    jitsiConference.addEventListener(JitsiConferenceEvents.USER_JOINED, (id, jitsiParticipant) => {
+        logger.info(`########################################################################################`);
+        logger.info(`########################################################################################`);
+        logger.info(`########################################################################################`);
+        logger.info(`########################################################################################`);
+        logger.info(`AfterStatusChangedEvent. id[${id}], participant[${jitsiParticipant}]`);
+
+        logger.info(`jid: ${jitsiParticipant._jid}`)
+        logger.info(`id: ${jitsiParticipant._id}`)
+        logger.info(`conference: ${jitsiParticipant._conference}`)
+        logger.info(`displayName: ${jitsiParticipant._displayName}`)
+
+        logger.info(`########################################################################################`);
+        logger.info(`########################################################################################`);
+        logger.info(`########################################################################################`);
+        logger.info(`########################################################################################`);
+    } );
+
+    return jitsiConference;
 };
 
 /**

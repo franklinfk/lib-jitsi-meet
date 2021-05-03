@@ -20,6 +20,9 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      */
     constructor(xmpp) {
         super();
+
+        logger.info(`MucConnectionPlugin.contructor()`);
+
         this.xmpp = xmpp;
         this.rooms = {};
     }
@@ -32,18 +35,12 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
         super.init(connection);
 
         // add handlers (just once)
-        this.connection.addHandler(this.onPresence.bind(this), null,
-            'presence', null, null, null, null);
-        this.connection.addHandler(this.onPresenceUnavailable.bind(this),
-            null, 'presence', 'unavailable', null);
-        this.connection.addHandler(this.onPresenceError.bind(this), null,
-            'presence', 'error', null);
-        this.connection.addHandler(this.onMessage.bind(this), null,
-            'message', null, null);
-        this.connection.addHandler(this.onMute.bind(this),
-            'http://jitsi.org/jitmeet/audio', 'iq', 'set', null, null);
-        this.connection.addHandler(this.onMuteVideo.bind(this),
-            'http://jitsi.org/jitmeet/video', 'iq', 'set', null, null);
+        this.connection.addHandler(this.onPresence.bind(this), null, 'presence', null, null, null, null);
+        this.connection.addHandler(this.onPresenceUnavailable.bind(this), null, 'presence', 'unavailable', null);
+        this.connection.addHandler(this.onPresenceError.bind(this), null, 'presence', 'error', null);
+        this.connection.addHandler(this.onMessage.bind(this), null, 'message', null, null);
+        this.connection.addHandler(this.onMute.bind(this), 'http://jitsi.org/jitmeet/audio', 'iq', 'set', null, null);
+        this.connection.addHandler(this.onMuteVideo.bind(this), 'http://jitsi.org/jitmeet/video', 'iq', 'set', null, null);
     }
 
     /**
@@ -53,7 +50,11 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      * @param options
      */
     createRoom(jid, password, options) {
+        logger.info(`createRoom() jid[${jid}]`)
+
         const roomJid = Strophe.getBareJidFromJid(jid);
+
+        logger.info(`createRoom() roomJid[${roomJid}]`)
 
         if (this.rooms[roomJid]) {
             const errmsg = 'You are already in the room!';
@@ -61,10 +62,8 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
             logger.error(errmsg);
             throw new Error(errmsg);
         }
-        this.rooms[roomJid] = new ChatRoom(this.connection, jid,
-            password, this.xmpp, options);
-        this.eventEmitter.emit(
-            XMPPEvents.EMUC_ROOM_ADDED, this.rooms[roomJid]);
+        this.rooms[roomJid] = new ChatRoom(this.connection, jid, password, this.xmpp, options);
+        this.eventEmitter.emit(XMPPEvents.EMUC_ROOM_ADDED, this.rooms[roomJid]);
 
         return this.rooms[roomJid];
     }
@@ -74,8 +73,7 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      * @param jid
      */
     doLeave(jid) {
-        this.eventEmitter.emit(
-            XMPPEvents.EMUC_ROOM_REMOVED, this.rooms[jid]);
+        this.eventEmitter.emit(XMPPEvents.EMUC_ROOM_REMOVED, this.rooms[jid]);
         delete this.rooms[jid];
     }
 
@@ -84,6 +82,8 @@ export default class MucConnectionPlugin extends ConnectionPluginListenable {
      * @param pres
      */
     onPresence(pres) {
+        logger.info(`MucConnectionPlugin.onPresence(). Strophe.getBareJidFromJid(from)[]`)
+
         const from = pres.getAttribute('from');
 
         // What is this for? A workaround for something?
